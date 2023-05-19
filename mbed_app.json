@@ -1,0 +1,37 @@
+{
+    "config": {
+        "wifi-ssid": {
+            "help": "WiFi SSID",
+            "value": "\"Dan1l0s\""
+        },
+        "wifi-password": {
+            "help": "WiFi Password",
+            "value": "\"Dan1l0spa$$\""
+        },
+        "tx": {
+            "help": "TX pin for serial connection",
+            "value": "D8"
+        },
+        "rx": {
+            "help": "RX pin for serial connection",
+            "value": "D2"
+        },
+        "socket-bufsize": {
+            "help": "Max socket data heap usage",
+            "value": "1024"
+        }
+    },
+    "target_overrides": {
+        "*": {
+            "target.c_lib": "std",
+            "target.printf_lib": "std",
+            "target.network-default-interface-type": "WIFI",
+            "esp8266.tx": "D8",
+            "esp8266.rx": "D2",
+            "esp8266.socket-bufsize": "1024",
+            "esp8266.debug": false,
+            "platform.stdio-convert-newlines": true,
+            "esp8266.provide-default": true
+        }
+    }
+}
