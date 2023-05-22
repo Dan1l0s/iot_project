@@ -4,6 +4,7 @@
 #include "MQTTClient.h"
 #include "MQTTNetwork.h"
 #include "DHT11/Dht11.h"
+#include "config.h"
 
 Thread thread_messages;
 Thread thread_timer_countdown;
@@ -16,13 +17,6 @@ WiFiInterface *wifi;
 #define MQTTCLIENT_QOS2 1
 
 MQTT::Client<MQTTNetwork, Countdown> *client_ptr;
-
-char *timer_topic = "Dan2l0s/feeds/smarttimer.timer";
-// char *temperature_topic = "Dan2l0s/groups/SmartTimer/Temperature";
-char *temperature_topic = "Dan2l0s/feeds/smarttimer.temperature";
-char *timer_status_topic = "Dan2l0s/feeds/smarttimer.timerstatus";
-char *timer_settings_topic = "Dan2l0s/feeds/smarttimer.timersettings";
-char *temperature_settings_topic = "Dan2l0s/feeds/smarttimer.temperaturesettings";
 
 bool connection = false;
 
@@ -50,7 +44,7 @@ void countdown()
             int seconds = timer_left % 60;
             sprintf(ans, "%02d:%02d:%02d", hours, minutes, seconds);
             message = (char *)ans;
-            post_message(timer_topic, message);
+            post_message(TIMER_TOPIC, message);
         }
     }
     if (timer_status)
@@ -58,7 +52,7 @@ void countdown()
         timer_status = false;
         message = "0";
         timer_left = 0;
-        post_message(timer_status_topic, message);
+        post_message(TIMER_STATUS_TOPIC, message);
     }
 }
 
@@ -86,7 +80,7 @@ void timer_settings_listener(MQTT::MessageData &md)
     printf("Hours: %d minutes: %d seconds %d\n\r", hours, minutes, seconds);
     timer_left = hours * 3600 + minutes * 60 + seconds;
     printf("Timer left: %d\r\n", timer_left);
-    post_message(timer_topic, content);
+    post_message(TIMER_TOPIC, content);
 }
 
 void temperature_settings_listener(MQTT::MessageData &md)
@@ -144,14 +138,14 @@ void temperature_handler()
         // temperature = 30;
         sprintf(msg, "%d", temperature);
         // printf("Temperature: %s\r\n", msg);
-        post_message(temperature_topic, msg);
+        post_message(TEMPERATURE_TOPIC, msg);
         if ((temperature - target_temp > 2))
         {
             if (timer_status && !timer_error)
             {
                 timer_error = true;
                 char *mesg = "0";
-                post_message(timer_status_topic, mesg);
+                post_message(TIMER_STATUS_TOPIC, mesg);
             }
         }
         else
@@ -160,7 +154,7 @@ void temperature_handler()
             {
                 timer_error = false;
                 char *mesg = "1";
-                post_message(timer_status_topic, mesg);
+                post_message(TIMER_STATUS_TOPIC, mesg);
             }
         }
     }
@@ -201,23 +195,24 @@ void mqtt_demo(NetworkInterface *net)
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
 
     data.MQTTVersion = 3;
-    data.clientID.cstring = "2a617592b917";
-    data.username.cstring = "Dan2l0s";
-    data.password.cstring = "aio_MXDF78jlrmMFSUoQcHPtLt93Zddx";
+    data.clientID.cstring = CLIENT_ID;
+    data.username.cstring = USERNAME;
+    data.password.cstring = API_KEY;
 
     if ((rc = client.connect(data)) != 0)
         printf("rc from MQTT connect is %d\r\n", rc);
 
-    if ((rc = client.subscribe(timer_settings_topic, MQTT::QOS0, timer_settings_listener)) != 0)
+    if ((rc = client.subscribe(TIMER_SETTINGS_TOPIC, MQTT::QOS0, timer_settings_listener)) != 0)
         printf("rc from MQTT subscribe1 is %d\r\n", rc);
 
-    if ((rc = client.subscribe(temperature_settings_topic, MQTT::QOS0, temperature_settings_listener)) != 0)
+    if ((rc = client.subscribe(TEMPERATURE_SETTINGS_TOPIC, MQTT::QOS0, temperature_settings_listener)) != 0)
         printf("rc from MQTT subscribe2 is %d\r\n", rc);
 
-    if ((rc = client.subscribe(timer_status_topic, MQTT::QOS0, timer_status_listener)) != 0)
+    if ((rc = client.subscribe(TIMER_STATUS_TOPIC, MQTT::QOS0, timer_status_listener)) != 0)
         printf("rc from MQTT subscribe3 is %d\r\n", rc);
 
     printf("connection = true\n\r");
+
     connection = true;
     while (true)
     {

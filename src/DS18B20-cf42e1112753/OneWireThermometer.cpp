@@ -65,23 +65,8 @@ bool OneWireThermometer::initialize()
 
         if (address[0] != deviceId)
         {
-            // Make sure it is a one-wire thermometer device
-            if (DS18B20_ID == deviceId)
-                // pc.traceOut("You need to use a DS1820 or DS18S20 for correct results.\r\n");
-                else if (DS18S20_ID == deviceId)
-                    // pc.traceOut("You need to use a DS18B20 for correct results.\r\n");
-                    else
-                    // pc.traceOut("Device is not a DS18B20/DS1820/DS18S20 device.\r\n");
-
-                    thread_sleep_for(2000);
+            thread_sleep_for(2000);
             return false;
-        }
-        else
-        {
-            if (DS18B20_ID == deviceId)
-                // pc.traceOut("DS18B20 present and correct.\r\n");
-                if (DS18S20_ID == deviceId)
-            // pc.traceOut("DS1820/DS18S20 present and correct.\r\n");
         }
     }
 
