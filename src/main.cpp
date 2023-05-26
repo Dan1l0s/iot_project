@@ -4,15 +4,24 @@
 #include "MQTTClient.h"
 #include "MQTTNetwork.h"
 #include "DHT11/Dht11.h"
-#include "config.h"
 
-Thread thread_messages;
-Thread thread_timer_countdown;
+char *TIMER_TOPIC = "Dan2l0s/feeds/smarttimer.timer";
+char *TEMPERATURE_TOPIC = "Dan2l0s/feeds/smarttimer.temperature";
+char *TIMER_STATUS_TOPIC = "Dan2l0s/feeds/smarttimer.timerstatus";
+char *TIMER_SETTINGS_TOPIC = "Dan2l0s/feeds/smarttimer.timersettings";
+char *TEMPERATURE_SETTINGS_TOPIC = "Dan2l0s/feeds/smarttimer.temperaturesettings";
+
+char *CLIENT_ID = "2a617592b917";
+char *USERNAME = "Dan2l0s";
+char *API_KEY = "API_KEY";
+
+Thread temperature_thread;
+Thread timer_thread;
 
 Dht11 sensor(D6);
 
 WiFiInterface *wifi;
-// DS18B20 sensor(D6);
+// DS18B20 sensor(false, false, false, D6);
 
 #define MQTTCLIENT_QOS2 1
 
@@ -108,9 +117,9 @@ void timer_status_listener(MQTT::MessageData &md)
     printf(". %s ., %d , %d .\r\n", content, timer_left, (int)timer_status);
     if (content[0] == '1' && timer_left > 0 && !timer_status)
     {
-        countdown();
+        timer_thread.start(countdown);
     }
-    if (content[0] == '0' && timer_left > 0 && timer_status)
+    if (content[0] == '0' && timer_status && !timer_error)
     {
         timer_left = 0;
         timer_status = false;
@@ -144,6 +153,7 @@ void temperature_handler()
             if (timer_status && !timer_error)
             {
                 timer_error = true;
+                printf("Timer error!\n\r");
                 char *mesg = "0";
                 post_message(TIMER_STATUS_TOPIC, mesg);
             }
@@ -153,6 +163,7 @@ void temperature_handler()
             if (timer_error)
             {
                 timer_error = false;
+                printf("Timer error false!\n\r");
                 char *mesg = "1";
                 post_message(TIMER_STATUS_TOPIC, mesg);
             }
@@ -222,31 +233,11 @@ void mqtt_demo(NetworkInterface *net)
     return;
 }
 
-const char *sec2str(nsapi_security_t sec)
-{
-    switch (sec)
-    {
-    case NSAPI_SECURITY_NONE:
-        return "None";
-    case NSAPI_SECURITY_WEP:
-        return "WEP";
-    case NSAPI_SECURITY_WPA:
-        return "WPA";
-    case NSAPI_SECURITY_WPA2:
-        return "WPA2";
-    case NSAPI_SECURITY_WPA_WPA2:
-        return "WPA/WPA2";
-    case NSAPI_SECURITY_UNKNOWN:
-    default:
-        return "Unknown";
-    }
-}
-
 DigitalIn button(USER_BUTTON);
 
 int main()
 {
-    printf("\nWiFi example\n");
+    printf("\nWiFi example\n\r");
 
     wifi = WiFiInterface::get_default_instance();
     if (!wifi)
@@ -262,7 +253,7 @@ int main()
         printf("\nConnection error: %d\n", ret);
         return -1;
     }
-    printf("Success\n\n");
+    printf("Success\n\n\r");
     printf("MAC: %s\n", wifi->get_mac_address());
     SocketAddress a;
     wifi->get_ip_address(&a);
@@ -270,8 +261,8 @@ int main()
     wifi->get_netmask(&a);
     printf("Netmask: %s\n", a.get_ip_address());
     wifi->get_gateway(&a);
-    printf("Gateway: %s\n", a.get_ip_address());
-    thread_messages.start(temperature_handler);
+    printf("Gateway: %s\n\r", a.get_ip_address());
+    temperature_thread.start(temperature_handler);
     mqtt_demo(wifi);
 
     printf("\nDone\n");
